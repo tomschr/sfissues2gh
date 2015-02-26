@@ -39,5 +39,7 @@ if __name__ == "__main__":
     except (SomethingWrong, AttributeError) as err:
         print(err.args[0], file=sys.stderr)
         err.args[1].close()
-
+    except ImportError as err:
+        print("Missing config.py not found", file=sys.stderr)
+        
 # EOF
