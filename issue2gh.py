@@ -46,74 +46,76 @@ def getIssues(git, repo):
    pass
 
 def getGHuser(sfuser):
-    return SF2GHuserdict.get(sfuser)
+   return SF2GHuserdict.get(sfuser)
 
 def getSFuser(ghuser):
-    return GH2SFuserdict.get(ghuser)
+   return GH2SFuserdict.get(ghuser)
 
 def getGHUsers(git):
-    res={}
-    # Iterate over all GH users:
-    for u in SF2GHuserdict.values():
-        try:
-            r = git.get_user(u)
-            res.setdefault(u, r)
-        except github.UnknownObjectException:
-            log.warn("Couldn't find a matching GitHub user '{}' for {}".format(u, getSFuser(u) ) )
-    return res
+   res={}
+   # Iterate over all GH users:
+   for u in SF2GHuserdict.values():
+       try:
+           r = git.get_user(u)
+           res.setdefault(u, r)
+       except github.UnknownObjectException:
+           log.warn("Couldn't find a matching GitHub user '{}' for {}".format(u, getSFuser(u) ) )
+   return res
 
 def parser():
-    import argparse
-    usage = """
-    """
-    parser = argparse.ArgumentParser(prog=__file__)
-    parser.add_argument('jsonfile', help="JSON export from Sourceforge")
-    parser.add_argument('repo',
-        nargs="?",
-        help="Repo name as <owner>/<project>",
-        default=DEFAULTREPO,
-        )
-    parser.add_argument('-d', '--debug',
-        dest="debug",
-        action="store_true",
-        default=False,
-        help="Help debugging")
-    parser.add_argument('-v', '--verbose',
-        dest="verbose",
-        action="count",
-        help="Raise verbosity level",
-        )
-    parser.add_argument('-s', '--start',
-        dest='start_id',
-        action='store',
-        type=int,
-        default=1,
-        help='id of first issue to import (inclusive); useful for aborted runs')
-    parser.add_argument('-e', '--end',
-        dest='end_id',
-        type=int,
-        action='store',
-        help='id of end issue to import (inclusive); useful for aborted runs')
-    parser.add_argument('-u', '--user',
-        dest='github_user')
-    parser.add_argument("-T", "--no-id-in-title",
-        action="store_true",
-        dest="no_id_in_title",
-        help="do not append '[sf#12345]' to issue titles")
-    #parser.add_argument('-U', '--user-map',
-    #    help="A json file mapping SF username to GitHub username",
-    #    default={},
-    #    type=load_json)
+   import argparse
+   usage = """
+   """
+   parser = argparse.ArgumentParser(prog=__file__)
+   parser.add_argument('jsonfile', help="JSON export from Sourceforge")
+   parser.add_argument('repo',
+      nargs="?",
+      help="Repo name as <owner>/<project>",
+      default=DEFAULTREPO,
+      )
+   parser.add_argument('-d', '--debug',
+      dest="debug",
+      action="store_true",
+      default=False,
+      help="Help debugging")
+   parser.add_argument('-v', '--verbose',
+      dest="verbose",
+      action="count",
+      help="Raise verbosity level",
+      )
+   parser.add_argument('-s', '--start',
+      dest='start_id',
+      action='store',
+      type=int,
+      default=1,
+      help='id of first issue to import (inclusive); useful for aborted runs')
+   parser.add_argument('-e', '--end',
+      dest='end_id',
+      type=int,
+      action='store',
+      help='id of end issue to import (inclusive); useful for aborted runs')
+   parser.add_argument('-u', '--user',
+      dest='github_user')
+   parser.add_argument("-T", "--no-id-in-title",
+      action="store_true",
+      dest="no_id_in_title",
+      help="do not append '[sf#12345]' to issue titles")
+   #parser.add_argument('-U', '--user-map',
+   #    help="A json file mapping SF username to GitHub username",
+   #    default={},
+   #    type=load_json)
 
-    args = parser.parse_args()
+   args = parser.parse_args()
 
-    if args.start_id < 0:
-       parser.error("Start ID has to be positive!")
+   if args.start_id < 0:
+      parser.error("Start ID has to be positive!")
 
-    if args.end_id is not None and args.end_id < args.start_id:
-       parser.error("End ID must be greater than start ID!")
+   if args.end_id is not None and args.end_id < args.start_id:
+      parser.error("End ID must be greater than start ID!")
 
-    return args
+
+
+   return args
 
 def setLogging(args, examples=True):
    leveldict = {
