@@ -117,16 +117,18 @@ def parser():
 
 def setLogging(args, examples=True):
    leveldict = {
-      None: logging.ERROR,  # logging.NOTSET,
+      None: logging.ERROR,
          1: logging.WARNING,
          2: logging.INFO,
-         3: logging.DEBUG
+         3: logging.DEBUG,
+         # any greater value is falling back to logging.DEBUG
+         'fallback': logging.DEBUG
        }
 
-   handler.setLevel(leveldict.get(args.verbose, logging.DEBUG))
+   handler.setLevel(leveldict.get(args.verbose, leveldict["fallback"]))
 
    log.addHandler(handler)
-   log.setLevel(leveldict.get(args.verbose, logging.DEBUG))
+   log.setLevel(leveldict.get(args.verbose, leveldict["fallback"]))
 
    if examples:
       log.debug("Debug")
