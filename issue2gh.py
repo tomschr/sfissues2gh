@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
 import sys
+import os
+import os.path
 import time
 import random
 import logging
@@ -8,9 +10,8 @@ import re
 
 # import requests
 import json
-import github
+import github3
 
-from github.GithubObject import NotSet
 
 from config import CLIENTID, CLIENTSECRET, TOKEN, DEFAULTREPO, \
      SF2GHuserdict, GH2SFuserdict, userdict
@@ -18,7 +19,17 @@ from config import CLIENTID, CLIENTSECRET, TOKEN, DEFAULTREPO, \
 __version__ = "0.1"
 __author__ = "Thomas Schraitle <toms@opensuse.org>"
 
-log = logging.getLogger(DEFAULTREPO)
+
+log = logging.getLogger(__file__)
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(formatter)
+handler.setLevel(logging.DEBUG)
+
+log.addHandler(handler)
+log.setLevel(logging.DEBUG)
+
 
 
 def migrateTickets():
@@ -26,8 +37,7 @@ def migrateTickets():
 
 def getCollaborators(git, repo):
     return repo.get_collaborators()
-    
-    
+
 def getMilestones(git, repo):
     return repo.get_milestones()
 
@@ -39,9 +49,8 @@ def setupGitHubRepo(login="tomschr", reponame="daps-test"):
 
 
 def getIssues(git, repo):
-    return repo.get_issues()
+   pass
 
-    
 def getGHuser(sfuser):
     return SF2GHuserdict.get(sfuser)
     
@@ -64,7 +73,7 @@ def parser():
     usage = """
     """
     parser = argparse.ArgumentParser(prog=__file__)
-    parser.add_argument('input_file', help="JSON export from Sourceforge")
+    parser.add_argument('jsonfile', help="JSON export from Sourceforge")
     parser.add_argument('repo', 
         nargs="?",
         help="Repo name as <owner>/<project>", 
@@ -75,18 +84,15 @@ def parser():
         action="store_true",
         default=False,
         help="Help debugging")
-    parser.add_argument('-M', '--skip-milestone', 
-        dest='skipmilestone',
-        action="store_true", default=False,
-        help="Skip creation of milestones")
-    parser.add_argument('-C', '--skip-issue-creation', 
-        dest='skipissuecreation',
-        action="store_true", default=False,
-        help="Skip the creation of issues, just update them")
+
     parser.add_argument('-s', '--start', 
         dest='start_id', 
         action='store',
-        help='id of first issue to import; useful for aborted runs')
+        help='id of first issue to import (inclusive); useful for aborted runs')
+    parser.add_argument('-e', '--end', 
+        dest='end_id', 
+        action='store',
+        help='id of end issue to import (inclusive); useful for aborted runs')
     parser.add_argument('-u', '--user',
         dest='github_user')
     parser.add_argument("-T", "--no-id-in-title", 
@@ -102,49 +108,43 @@ def parser():
     return args
 
 if __name__ == "__main__":
-    args = parser()
-    if args.debug:
-        github.enable_console_debug_logging()
-    git, repo = setupGitHubRepo()
-    rt = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(git.rate_limiting_resettime))
-    print("Github Reset Time:", rt)
-    issues = getIssues(git, repo)
-    #for i in issues:
-    #    print("{i.id}/{i.state} {i.title}".format( **locals() ))
-    
-    #print("Creating milestone 'foo' now...")
-    #res = repo.create_milestone("Foo")
-    #print("Result:", res)
-    
-    print("Creating an issue 'Test Issue' now...")
-    milestone = repo.get_milestone(2)
-    body="""*Created by tomschr with issue2gh.py*"""
-    issue = repo.create_issue(title="Test Issue 9",
-        body=body,
-        milestone=milestone,
-        labels=["Bug"]
-        )
-    
-    #users = getGHUsers(git)
-    
-    # user = git.get_user("fsundermeyer")
-    #user = users.get('fsundermeyer')
-    #if user is None:
-    #    user = users.get("tomschr")
-    
-    
-    #try:
-        #issue.edit(title="Edited Test Issue No.7", 
-                #body=body, 
-                ##assignee=user, 
-                #state="open", 
-                ##milestone=milestone, 
-                #labels=["Bug"]
-                #)
-    #except github.GithubException.GithubException as err:
-        #print(err)
-    #finally:
-        #print("Successful!")
-    
-    print("Successful!")
-    
+   args = parser()
+   if args.debug:
+      log.info("Enable debugging")
+
+   if not os.path.exists(args.jsonfile):
+      log.error("The JSON file '{}' does not exists.".format(args.jsonfile))
+      sys.exit(10)
+
+   r = args.repo.split("/") if args.repo else DEFAULTREPO.split("/")
+
+   log.info("Using repo {}".format(r))
+
+   g = github3.login(token=TOKEN)
+   repo = g.repository(*r)
+
+   print("URL    : {}".format(repo.url))
+   print("Git URL: {}".format(repo.git_url))
+
+
+   missingcollabs=[]
+   found=[]
+   # Remove any double entries
+   for c in set(userdict.values()):
+      if not repo.is_collaborator(c):
+         missingcollabs.append(c)
+         # add collaborator
+      else:
+         found.append(c)
+
+   if not found:
+      log.warning("No collaborator found. Add {}".format(found) )
+
+   if not missingcollabs:
+      log.warning("Missing collaborators:", ",".join(missingcollabs))
+
+   log.info("Collaborators: Found {} - missing {}".format( len(found),
+                                                           len(missingcollabs),
+                                                         ))
+
+# EOF
