@@ -73,11 +73,11 @@ def parser():
       help="Repo name as <owner>/<project>",
       default=DEFAULTREPO,
       )
-   parser.add_argument('-d', '--debug',
-      dest="debug",
-      action="store_true",
-      default=False,
-      help="Help debugging")
+   #parser.add_argument('-d', '--debug',
+      #dest="debug",
+      #action="store_true",
+      #default=False,
+      #help="Help debugging")
    parser.add_argument('-v', '--verbose',
       dest="verbose",
       action="count",
@@ -184,9 +184,6 @@ if __name__ == "__main__":
    args = parser()
    setLogging(args, False)
    log.debug("Arguments: {}".format(args))
-
-   if args.debug:
-      log.info("Enable debugging")
 
    if not os.path.exists(args.jsonfile):
       log.error("The JSON file '{}' does not exists.".format(args.jsonfile))
