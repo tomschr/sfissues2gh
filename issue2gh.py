@@ -225,13 +225,34 @@ if __name__ == "__main__":
   Status:   {status}
   Labels:   {labels}
          """.format(**locals()))
+
+      issuedict = dict(title=summary,
+                      body=description,
+                      # milestone= ,
+                      labels=labels,
+                      )
+      if assigned_to in collabs[0]:
+         issuedict.update(assignee=assigned_to)
+
+      if args.dryrun:
+         log.debug("dryrun: Will create issue with: {}".format(issuedict))
+
       if not args.dryrun:
-         issue = repo.create_issue(title=summary,
-                        body=description,
-                        assignee=assigned_to,
-                        # milestone= ,
-                        labels=labels,
-                       )
+         issue = repo.create_issue(**issuedict)
+
+      for post in t['discussion_thread']['posts']:
+         timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
+         body = '**'
+         if re.match('^- \*\*', post['text']):
+            body += 'Updated by '
+         else:
+            body += 'Commented by '
+         body += post['author'] + ' on ' + timestamp + "**\n" + post['text']
+
+         print("  Comment from {} on {}".format(post['author'], timestamp) )
+         if not args.dryrun:
+            issue.create_comment(body=body)
+
 
 
 
