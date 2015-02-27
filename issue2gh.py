@@ -86,9 +86,12 @@ def parser():
     parser.add_argument('-s', '--start',
         dest='start_id',
         action='store',
+        type=int,
+        default=1,
         help='id of first issue to import (inclusive); useful for aborted runs')
     parser.add_argument('-e', '--end',
         dest='end_id',
+        type=int,
         action='store',
         help='id of end issue to import (inclusive); useful for aborted runs')
     parser.add_argument('-u', '--user',
@@ -103,6 +106,13 @@ def parser():
     #    type=load_json)
 
     args = parser.parse_args()
+
+    if args.start_id < 0:
+       parser.error("Start ID has to be positive!")
+
+    if args.end_id is not None and args.end_id < args.start_id:
+       parser.error("End ID must be greater than start ID!")
+
     return args
 
 def setLogging(args, examples=True):
