@@ -147,16 +147,16 @@ def load_json(filename):
 def sorttickets(tracker):
    return sorted(tracker['tickets'], key=lambda t: t['ticket_num'])
 
-def foo():
+def prepareGithub(args):
    r = args.repo.split("/") if args.repo else DEFAULTREPO.split("/")
 
-   log.info("Using repo {}".format(r))
+   log.info("Using GitHub repo {}".format(args.repo))
 
    g = github3.login(token=TOKEN)
    repo = g.repository(*r)
 
-   log.info("URL    : {}".format(repo.url))
-   log.info("Git URL: {}".format(repo.git_url))
+   log.debug("URL    : {}".format(repo.url))
+   log.debug("Git URL: {}".format(repo.git_url))
 
    missingcollabs=[]
    found=[]
@@ -165,12 +165,13 @@ def foo():
       if not repo.is_collaborator(c):
          missingcollabs.append(c)
          # add collaborator
-         # dapstest.add_collaborator(username=c) -> bool
+         # if dapstest.add_collaborator(username=c):
+         #  log.error("Could not add user '{}' as collaborator".format(c))
       else:
          found.append(c)
 
    if not found:
-      log.warning("No collaborator found. Add {}".format(found) )
+      log.warning("No collaborator found. Add {} manually.".format(found) )
 
    if not missingcollabs:
       log.warning("Missing collaborators:", ",".join(missingcollabs))
@@ -178,7 +179,7 @@ def foo():
    log.info("Collaborators: Found {} - missing {}".format( len(found),
                                                            len(missingcollabs),
                                                          ))
-
+   return repo, found, missingcollabs
 
 if __name__ == "__main__":
    args = parser()
@@ -190,6 +191,7 @@ if __name__ == "__main__":
       sys.exit(10)
 
    tracker = load_json(args.jsonfile)
+   repo, *collabs = prepareGithub(args)
 
    for i, t in enumerate(sorttickets(tracker)):
       no = t['ticket_num']
@@ -202,12 +204,25 @@ if __name__ == "__main__":
       created_date = t['created_date']
       summary = t['summary']
       status = t['status']
-      description = t['description']
+      reported_by = t['reported_by']
       custom_fields = t['custom_fields']
+      timestamp = re.sub(':\d+(\.\d+)?$', '', created_date + " UTC"
+      description = t['description']
+      description = "**Reported by {reported_by} on {timestamp}**\n{description}".format(**locals())
       print("""* Ticket #{no}: {summary}
   Created:  {created_date}
   Assigned: {assigned_to}
   Status:   {status}
+  Labels:   {labels}
          """.format(**locals()))
+      if True:
+         issue = repo.create_issue(title=summary,
+                        body=description,
+                        assignee=assigned_to,
+                        # milestone= ,
+                        labels=labels,
+                       )
+
+
 
 # EOF
