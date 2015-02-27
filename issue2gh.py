@@ -113,7 +113,7 @@ def parser():
    if args.end_id is not None and args.end_id < args.start_id:
       parser.error("End ID must be greater than start ID!")
 
-
+   # By default, start_id and end_id contains (1, None), meaning *all* tickets
 
    return args
 
