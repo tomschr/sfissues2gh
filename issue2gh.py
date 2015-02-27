@@ -193,6 +193,10 @@ if __name__ == "__main__":
 
    for i, t in enumerate(sorttickets(tracker)):
       no = t['ticket_num']
+      # Check, if we need to process only some tickets
+      if no < args.start_id or (args.end_id is not None and no > args.end_id):
+         continue
+
       labels = t['labels']
       assigned_to = t['assigned_to']
       created_date = t['created_date']
