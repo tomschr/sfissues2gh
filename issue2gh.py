@@ -78,6 +78,11 @@ def parser():
       #action="store_true",
       #default=False,
       #help="Help debugging")
+   parser.add_argument('-N', '--dry-run',
+      dest="dryrun",
+      action="store_true",
+      default=False,
+      help="Do not execute, just print")
    parser.add_argument('-v', '--verbose',
       dest="verbose",
       action="count",
@@ -152,33 +157,36 @@ def prepareGithub(args):
 
    log.info("Using GitHub repo {}".format(args.repo))
 
-   g = github3.login(token=TOKEN)
-   repo = g.repository(*r)
-
-   log.debug("URL    : {}".format(repo.url))
-   log.debug("Git URL: {}".format(repo.git_url))
-
    missingcollabs=[]
    found=[]
-   # Remove any double entries
-   for c in set(userdict.values()):
-      if not repo.is_collaborator(c):
-         missingcollabs.append(c)
-         # add collaborator
-         # if dapstest.add_collaborator(username=c):
-         #  log.error("Could not add user '{}' as collaborator".format(c))
-      else:
-         found.append(c)
+   repo=None
 
-   if not found:
-      log.warning("No collaborator found. Add {} manually.".format(found) )
+   if not args.dryrun:
+      g = github3.login(token=TOKEN)
+      repo = g.repository(*r)
 
-   if not missingcollabs:
-      log.warning("Missing collaborators:", ",".join(missingcollabs))
+      log.debug("URL    : {}".format(repo.url))
+      log.debug("Git URL: {}".format(repo.git_url))
 
-   log.info("Collaborators: Found {} - missing {}".format( len(found),
-                                                           len(missingcollabs),
-                                                         ))
+      # Remove any double entries
+      for c in set(userdict.values()):
+         if not repo.is_collaborator(c):
+            missingcollabs.append(c)
+            # add collaborator
+            # if dapstest.add_collaborator(username=c):
+            #  log.error("Could not add user '{}' as collaborator".format(c))
+         else:
+            found.append(c)
+
+      if not found:
+         log.warning("No collaborator found. Add {} manually.".format(found) )
+
+      if not missingcollabs:
+         log.warning("Missing collaborators:", ",".join(missingcollabs))
+
+      log.info("Collaborators: Found {} - missing {}".format( len(found),
+                                                            len(missingcollabs),
+                                                            ))
    return repo, found, missingcollabs
 
 if __name__ == "__main__":
@@ -203,19 +211,21 @@ if __name__ == "__main__":
       assigned_to = t['assigned_to']
       created_date = t['created_date']
       summary = t['summary']
+      if not args.no_id_in_title:
+         summary += " [sf#{}]".format(no)
       status = t['status']
       reported_by = t['reported_by']
       custom_fields = t['custom_fields']
-      timestamp = re.sub(':\d+(\.\d+)?$', '', created_date + " UTC"
+      timestamp = re.sub(':\d+(\.\d+)?$', '', created_date)
       description = t['description']
-      description = "**Reported by {reported_by} on {timestamp}**\n{description}".format(**locals())
+      description = "**Reported by {reported_by} on {timestamp} UTC**\n{description}".format(**locals())
       print("""* Ticket #{no}: {summary}
   Created:  {created_date}
   Assigned: {assigned_to}
   Status:   {status}
   Labels:   {labels}
          """.format(**locals()))
-      if True:
+      if not args.dryrun:
          issue = repo.create_issue(title=summary,
                         body=description,
                         assignee=assigned_to,
