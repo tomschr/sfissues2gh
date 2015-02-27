@@ -22,7 +22,7 @@ __author__ = "Thomas Schraitle <toms@opensuse.org>"
 
 log = logging.getLogger(__file__)
 formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler = logging.StreamHandler(stream=sys.stdout)
+handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(formatter)
 
 
@@ -126,20 +126,14 @@ def setLogging(args, examples=True):
       log.critical("OHje!!")
 
 
+def load_json(filename):
+   with open(filename) as stream:
+      return json.load(stream)
 
-if __name__ == "__main__":
-   args = parser()
-   if args.debug:
-      log.info("Enable debugging")
+def sorttickets(tracker):
+   return sorted(tracker['tickets'], key=lambda t: t['ticket_num'])
 
-   if not os.path.exists(args.jsonfile):
-      log.error("The JSON file '{}' does not exists.".format(args.jsonfile))
-      sys.exit(10)
-
-   print(">>>", args)
-   setLogging(args)
-
-
+def foo():
    r = args.repo.split("/") if args.repo else DEFAULTREPO.split("/")
 
    log.info("Using repo {}".format(r))
@@ -157,6 +151,7 @@ if __name__ == "__main__":
       if not repo.is_collaborator(c):
          missingcollabs.append(c)
          # add collaborator
+         # dapstest.add_collaborator(username=c) -> bool
       else:
          found.append(c)
 
@@ -169,5 +164,35 @@ if __name__ == "__main__":
    log.info("Collaborators: Found {} - missing {}".format( len(found),
                                                            len(missingcollabs),
                                                          ))
+
+
+if __name__ == "__main__":
+   args = parser()
+   setLogging(args, False)
+   log.debug("Arguments: {}".format(args))
+
+   if args.debug:
+      log.info("Enable debugging")
+
+   if not os.path.exists(args.jsonfile):
+      log.error("The JSON file '{}' does not exists.".format(args.jsonfile))
+      sys.exit(10)
+
+   tracker = load_json(args.jsonfile)
+
+   for i, t in enumerate(sorttickets(tracker)):
+      no = t['ticket_num']
+      labels = t['labels']
+      assigned_to = t['assigned_to']
+      created_date = t['created_date']
+      summary = t['summary']
+      status = t['status']
+      description = t['description']
+      custom_fields = t['custom_fields']
+      print("""* Ticket #{no}: {summary}
+  Created:  {created_date}
+  Assigned: {assigned_to}
+  Status:   {status}
+         """.format(**locals()))
 
 # EOF
