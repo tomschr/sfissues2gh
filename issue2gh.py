@@ -218,13 +218,9 @@ def updateIssue(args, repo, tracker, issue, sfTicket, prefix=""):
    if milestone in milestoneNumbers:
       updateData['milestone'] = milestoneNumbers[milestone]
 
-   #assignedTo = sfTicket['assigned_to']
-   #if assignedTo != "nobody":
-   #   gitAssignedTo = userdict.get(assignedTo, assignedTo)
-   #   if gitAssignedTo in collaborators:
-   #         updateData['assignee'] = gitAssignedTo
-   #   else:
-   #         print("{0} is not a collaborator, not assigning issue".format(gitAssignedTo))
+   labels = sfTicket["labels"]
+   if labels:
+      updateData["labels"] = labels
 
    status = sfTicket['status']
    if status in closedStatusNames:
@@ -286,7 +282,7 @@ if __name__ == "__main__":
 
       if not args.dryrun:
          issue = repo.create_issue(**issuedict)
-         result = updateIssue(args, repo, tracker, issue, t, prefix)
+         # result = updateIssue(args, repo, tracker, issue, t, prefix)
 
       for post in t['discussion_thread']['posts']:
          timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
@@ -300,8 +296,5 @@ if __name__ == "__main__":
          print("  Comment from {} on {}".format(post['author'], timestamp) )
          if not args.dryrun:
             issue.create_comment(body=body)
-
-
-
 
 # EOF
