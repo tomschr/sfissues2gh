@@ -25,25 +25,26 @@ formatter = logging.Formatter('[%(levelname)s] %(message)s')
 handler = logging.StreamHandler(stream=sys.stderr)
 handler.setFormatter(formatter)
 
+def getPrefix(export):
+   prefixes = {
+      "Bugs": "[Bug]",
+      "Feature Request": "[Feature]",
+      "Feature Requests": "[Feature]",
+      "Patch": "[Patch]",
+      "Patches": "[Patch]",
+      "Support Requests": "[Support]",
+      "Tech Support": "[Support]"
+   }
+   trackerName = export["tracker_config"]["options"]["mount_label"]
+   if trackerName not in prefixes:
+      return ""
+   return prefixes[trackerName]
 
-def migrateTickets():
-    pass
+def getCollaborators(repo):
+    return repo.collaborators()
 
-def getCollaborators(git, repo):
-    return repo.get_collaborators()
-
-def getMilestones(git, repo):
-    return repo.get_milestones()
-
-
-def setupGitHubRepo(login="tomschr", reponame="daps-test"):
-    git = github.Github(TOKEN)
-    repo = git.get_repo('{0}/{1}'.format(login, reponame))
-    return (git, repo)
-
-
-def getIssues(git, repo):
-   pass
+def getMilestones(repo):
+    return repo.milestones()
 
 def getGHuser(sfuser):
    return SF2GHuserdict.get(sfuser)
@@ -146,6 +147,9 @@ def setLogging(args, examples=True):
 
 
 def load_json(filename):
+   if not os.path.exists(filename):
+      log.error("The JSON file '{}' does not exists.".format(filename))
+      sys.exit(10)
    with open(filename) as stream:
       return json.load(stream)
 
@@ -189,17 +193,55 @@ def prepareGithub(args):
                                                             ))
    return repo, found, missingcollabs
 
+def getMilestoneNumbers(repo):
+   milestoneNumbers = {}
+
+   for milestone in repo.milestones():
+         milestoneNumbers[milestone.title] = milestone.number
+
+   return milestoneNumbers
+
+
+def updateIssue(args, repo, tracker, issue, sfTicket, prefix=""):
+   #(githubIssue, sfTicket, auth, milestoneNumbers, userdict,
+   #     closedStatusNames, appendSFNumber, collaborators, prefix = ""
+   closedStatusNames = tracker['closed_status_names']
+   milestoneNumbers = getMilestoneNumbers(repo)
+
+   updateData = {
+        'title': prefix + ("" if prefix == "" else " ") + issue.title
+    }
+   #if not args.no_id_in_title:
+   #     updateData['title'] += " [sf#{}]".format(sfTicket['ticket_num'])
+
+   milestone = sfTicket['custom_fields'].get('_milestone')
+   if milestone in milestoneNumbers:
+      updateData['milestone'] = milestoneNumbers[milestone]
+
+   #assignedTo = sfTicket['assigned_to']
+   #if assignedTo != "nobody":
+   #   gitAssignedTo = userdict.get(assignedTo, assignedTo)
+   #   if gitAssignedTo in collaborators:
+   #         updateData['assignee'] = gitAssignedTo
+   #   else:
+   #         print("{0} is not a collaborator, not assigning issue".format(gitAssignedTo))
+
+   status = sfTicket['status']
+   if status in closedStatusNames:
+      updateData['state'] = "closed"
+
+   if not args.dryrun:
+      return issue.edit(**updateData)
+
+
 if __name__ == "__main__":
    args = parser()
    setLogging(args, False)
    log.debug("Arguments: {}".format(args))
 
-   if not os.path.exists(args.jsonfile):
-      log.error("The JSON file '{}' does not exists.".format(args.jsonfile))
-      sys.exit(10)
-
    tracker = load_json(args.jsonfile)
    repo, *collabs = prepareGithub(args)
+   prefix = getPrefix(tracker)
 
    for i, t in enumerate(sorttickets(tracker)):
       no = t['ticket_num']
@@ -216,6 +258,7 @@ if __name__ == "__main__":
       status = t['status']
       reported_by = t['reported_by']
       custom_fields = t['custom_fields']
+      milestone = custom_fields.get('_milestone')
       timestamp = re.sub(':\d+(\.\d+)?$', '', created_date)
       description = t['description']
       description = "**Reported by {reported_by} on {timestamp} UTC**\n{description}".format(**locals())
@@ -224,21 +267,26 @@ if __name__ == "__main__":
   Assigned: {assigned_to}
   Status:   {status}
   Labels:   {labels}
+  Milestone: {milestone}
          """.format(**locals()))
+      milestoneNumbers = getMilestoneNumbers(repo)
 
       issuedict = dict(title=summary,
                       body=description,
-                      # milestone= ,
                       labels=labels,
                       )
       if assigned_to in collabs[0]:
          issuedict.update(assignee=assigned_to)
+
+      if milestone in milestoneNumbers:
+         issuedict.update(milestone=milestoneNumbers[milestone])
 
       if args.dryrun:
          log.debug("dryrun: Will create issue with: {}".format(issuedict))
 
       if not args.dryrun:
          issue = repo.create_issue(**issuedict)
+         result = updateIssue(args, repo, tracker, issue, t, prefix)
 
       for post in t['discussion_thread']['posts']:
          timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
