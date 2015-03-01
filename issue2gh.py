@@ -21,9 +21,6 @@ __author__ = "Thomas Schraitle <toms@opensuse.org>"
 
 
 log = logging.getLogger(__file__)
-formatter = logging.Formatter('[%(levelname)s] %(message)s')
-handler = logging.StreamHandler(stream=sys.stderr)
-handler.setFormatter(formatter)
 
 def getPrefix(export):
    prefixes = {
@@ -133,6 +130,9 @@ def setLogging(args, examples=True):
          'fallback': logging.DEBUG
        }
 
+   formatter = logging.Formatter('[%(levelname)s] %(message)s')
+   handler = logging.StreamHandler(stream=sys.stderr)
+   handler.setFormatter(formatter)
    handler.setLevel(leveldict.get(args.verbose, leveldict["fallback"]))
 
    log.addHandler(handler)
@@ -242,6 +242,8 @@ if __name__ == "__main__":
    for i, t in enumerate(sorttickets(tracker)):
       no = t['ticket_num']
       # Check, if we need to process only some tickets
+      # should be in the range [startid, endid] or [start, oo]
+      #
       if no < args.start_id or (args.end_id is not None and no > args.end_id):
          continue
 
