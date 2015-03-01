@@ -174,10 +174,11 @@ def load_json(filename):
 def sorttickets(tracker):
     return sorted(tracker['tickets'], key=lambda t: t['ticket_num'])
 
+
 def auth4GH(args):
-    homedir=os.path.expanduser("~")
-    configdir=os.path.join(homedir, ".config", "sfissues2git")
-    CREDENTIALS_FILE=os.path.join(configdir, "token")
+    #homedir=os.path.expanduser("~")
+    #configdir=os.path.join(homedir, ".config", "sfissues2git")
+    #CREDENTIALS_FILE=os.path.join(configdir, "token")
 
     from getpass import getpass
 
@@ -191,24 +192,24 @@ def auth4GH(args):
     #note_url = ''
     scopes = ['repo']
 
-    auth = github3.authorize(user, password,
-                            scopes,
-                            # note, note_url,
-                            client_id=CLIENTID,
-                            client_secret=CLIENTSECRET
-                            )
 
-    gh = github3.login(token=auth.token)
+    gh = github3.login(token=TOKEN)
+    auth = gh.authorize(user, password,
+                        scopes,
+                        # note, note_url,
+                        client_id=CLIENTID,
+                        client_secret=CLIENTSECRET
+                        )
 
     log.info("Authenticated as {name} "
              "with id {client_id} "
              "by {url}".format(**auth.app)
             )
     log.info("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
-    if not gh.check_authorization(auth.token):
-        log.error("Check for authorization has failed. "
-                  "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
-                 )
+    #if not gh.check_authorization(auth.token):
+    #    log.error("Check for authorization has failed. "
+    #              "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
+    #             )
     return gh, auth
 
 
