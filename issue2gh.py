@@ -179,55 +179,36 @@ def auth4GH(args):
     configdir=os.path.join(homedir, ".config", "sfissues2git")
     CREDENTIALS_FILE=os.path.join(configdir, "token")
 
-    if os.path.exists(CREDENTIALS_FILE):
-        token = ID = ''
-        with open(CREDENTIALS_FILE, 'r') as fd:
-            token = fd.readline().strip()  # Can't hurt to be paranoid
-            ID = fd.readline().strip()
-        gh = github3.login(token=token)
-        auth = gh.authorization(ID)
+    from getpass import getpass
 
-    # Credential file does NOT exist:
-    else:
-        if not os.path.exists(configdir):
-            os.mkdir(configdir)
+    user = args.gituser
+    password = ''
 
-        from getpass import getpass
+    while not password:
+        password = getpass(prompt='GitHub Password for {0}: '.format(user))
 
-        user = args.gituser
-        password = ''
+    #note = __file__
+    #note_url = ''
+    scopes = ['repo']
 
-        while not password:
-            password = getpass(prompt='GitHub Password for {0}: '.format(user))
+    auth = github3.authorize(user, password,
+                            scopes,
+                            # note, note_url,
+                            client_id=CLIENTID,
+                            client_secret=CLIENTSECRET
+                            )
 
-        #note = __file__
-        #note_url = ''
-        scopes = ['repo']
-
-        auth = github3.authorize(user, password,
-                                scopes,
-                                # note, note_url,
-                                client_id=CLIENTID,
-                                client_secret=CLIENTSECRET
-                                )
-
-        # Write credential file for the next run...
-        with open(CREDENTIALS_FILE, 'w') as fd:
-            fd.write(auth.token + '\n')
-            fd.write(str(auth.id))
-        gh = github3.login(token=auth.token)
-
-    #if not gh.check_authorization(auth.token):
-    #    log.error("Check for authorization has failed. "
-    #              "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
-    #             )
+    gh = github3.login(token=auth.token)
 
     log.info("Authenticated as {name} "
              "with id {client_id} "
              "by {url}".format(**auth.app)
             )
-
     log.info("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+    if not gh.check_authorization(auth.token):
+        log.error("Check for authorization has failed. "
+                  "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
+                 )
     return gh, auth
 
 
@@ -240,7 +221,8 @@ def createRepo(gh, args):
     res=''
     while True:
         res = input("Create repo {}? (y|N)".format(args.repo))
-        if res.strip().lower() in ('y', 'yes', 'n', 'no'):
+        res=res.strip().lower()
+        if res in ('y', 'yes', 'n', 'no'):
             break
     if res in ('n', 'no'):
         log.error("Don't create repo, aborting.")
@@ -248,7 +230,7 @@ def createRepo(gh, args):
 
     r = None
     if repo.get('name'):
-        r = gh.create_repo(repo.pop('name'), **repo)
+        r = gh.create_repository(repo.pop('name'), **repo)
 
     if r:
         log.info("Created {0} successfully.".format(r.name))
