@@ -105,8 +105,8 @@ def parser():
                         type=int,
                         action='store',
                         help='id of end issue to import (inclusive); useful for aborted runs')
-    parser.add_argument('-u', '--user',
-                        dest='github_user')
+    #parser.add_argument('-u', '--user',
+    #                    dest='github_user')
     parser.add_argument("-T", "--no-id-in-title",
                         action="store_true",
                         dest="no_id_in_title",
@@ -232,22 +232,30 @@ def auth4GH(args):
 
 
 def createRepo(gh, args):
-    repo = {}
+    repo = {'name': args.gitrepo}
     #keys = ['name', 'description', 'homepage', 'private', 'has_issues',
     #'has_wiki', 'has_downloads']
+    #  repo[key]
 
-    #for key in keys:
-    #    try:
-    #        repo[key] = raw_input(key + ': ')
-    #    except KeyboardInterrupt:
-    #        pass
+    res=''
+    while True:
+        res = input("Create repo {}? (y|N)".format(args.repo))
+        if res.strip().lower() in ('y', 'yes', 'n', 'no'):
+            break
+    if res in ('n', 'no'):
+        log.error("Don't create repo, aborting.")
+        sys.exit(20)
 
     r = None
     if repo.get('name'):
         r = gh.create_repo(repo.pop('name'), **repo)
 
     if r:
-        print("Created {0} successfully.".format(r.name))
+        log.info("Created {0} successfully.".format(r.name))
+        return r
+    else:
+        log.error("Could not create repo {}".format(args.repo))
+        sys.exit(30)
 
 
 def prepareGithub(args):
