@@ -126,6 +126,14 @@ def parser():
 
     # By default, start_id and end_id contains (1, None), meaning *all* tickets
 
+    r = args.repo.split("/")
+    if len(r) != 2:
+        parser.error("Expected for repo format GITUSER/REPO")
+
+    # Assign the splitted format into args:
+    args.gituser=r[0]
+    args.gitrepo=r[1]
+
     return args
 
 
@@ -166,6 +174,81 @@ def load_json(filename):
 def sorttickets(tracker):
     return sorted(tracker['tickets'], key=lambda t: t['ticket_num'])
 
+def auth4GH(args):
+    homedir=os.path.expanduser("~")
+    configdir=os.path.join(homedir, ".config", "sfissues2git")
+    CREDENTIALS_FILE=os.path.join(configdir, "token")
+
+    if os.path.exists(CREDENTIALS_FILE):
+        token = ID = ''
+        with open(CREDENTIALS_FILE, 'r') as fd:
+            token = fd.readline().strip()  # Can't hurt to be paranoid
+            ID = fd.readline().strip()
+        gh = github3.login(token=token)
+        auth = gh.authorization(ID)
+
+    # Credential file does NOT exist:
+    else:
+        if not os.path.exists(configdir):
+            os.mkdir(configdir)
+
+        from getpass import getpass
+
+        user = args.gituser
+        password = ''
+
+        while not password:
+            password = getpass(prompt='GitHub Password for {0}: '.format(user))
+
+        #note = __file__
+        #note_url = ''
+        scopes = ['repo']
+
+        auth = github3.authorize(user, password,
+                                scopes,
+                                # note, note_url,
+                                client_id=CLIENTID,
+                                client_secret=CLIENTSECRET
+                                )
+
+        # Write credential file for the next run...
+        with open(CREDENTIALS_FILE, 'w') as fd:
+            fd.write(auth.token + '\n')
+            fd.write(str(auth.id))
+        gh = github3.login(token=auth.token)
+
+    #if not gh.check_authorization(auth.token):
+    #    log.error("Check for authorization has failed. "
+    #              "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
+    #             )
+
+    log.info("Authenticated as {name} "
+             "with id {client_id} "
+             "by {url}".format(**auth.app)
+            )
+
+    log.info("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+    return gh, auth
+
+
+def createRepo(gh, args):
+    repo = {}
+    #keys = ['name', 'description', 'homepage', 'private', 'has_issues',
+    #'has_wiki', 'has_downloads']
+
+    #for key in keys:
+    #    try:
+    #        repo[key] = raw_input(key + ': ')
+    #    except KeyboardInterrupt:
+    #        pass
+
+    r = None
+    if repo.get('name'):
+        r = gh.create_repo(repo.pop('name'), **repo)
+
+    if r:
+        print("Created {0} successfully.".format(r.name))
+
 
 def prepareGithub(args):
     r = args.repo.split("/") if args.repo else DEFAULTREPO.split("/")
@@ -177,8 +260,12 @@ def prepareGithub(args):
     repo = None
 
     if not args.dryrun:
-        g = github3.login(token=TOKEN)
+        g, auth = auth4GH(args)
+        # g = github3.login(token=TOKEN)
         repo = g.repository(*r)
+        if not repo :
+            # create this repo?
+            repo = createRepo(g, args)
 
         log.debug("URL    : {}".format(repo.url))
         log.debug("Git URL: {}".format(repo.git_url))
