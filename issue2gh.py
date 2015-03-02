@@ -161,7 +161,6 @@ def setLogging(args):
         urllib3 = logging.getLogger('requests.packages.urllib3')
         #urllib3.addHandler(file_handler)
         urllib3.addHandler(streamhandler)
-        urllib3.setFormatter(formatter)
         urllib3.setLevel(level)
 
 
