@@ -4,10 +4,11 @@ import os
 import sys
 import logging
 import random
+from time import sleep
 
 import github3
 
-from config import CLIENTID, CLIENTSECRET, GITUSER, GITREPO
+from config import CLIENTID, CLIENTSECRET, TOKEN, GITUSER, GITREPO
 
 log = logging.getLogger(__file__)
 level = logging.DEBUG
@@ -30,7 +31,7 @@ def auth4GH():
 
     password = ''
     while not password:
-        password = getpass(prompt='GitHub Password for {0}: '.format(GITUSER))
+        password = getpass(prompt='GitHub Password for {}: '.format(GITUSER))
 
     scopes = ['repo']
 
@@ -51,7 +52,7 @@ def auth4GH():
 
 
 if __name__ == "__main__":
-    g, auth = auth4GH(args)
+    g, auth = auth4GH()
     if not len(sys.argv[1:]):
         print("ERROR: Expect a GitHub repo", file=sys.stderr)
 
@@ -67,14 +68,20 @@ if __name__ == "__main__":
             log.error("Could not create repo {}".format(reponame))
             sys.exit(30)
 
-    for t in range(100):
+    for t in range(1, 101):
+        log.debug("** Trying to create ticket #{}".format(t))
         issuedict = dict(title="Ticket #{}".format(t),
                          body="This is **ticket #1**".format(t),
                          )
-        log.debug("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+        log.debug("  X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
         issue = repo.create_issue(**issuedict)
+
+        sleep(2)
 
         if random.choice([True, False]):
             issue.create_comment(body="Hi, it's a comment to ticket #{}".format(t))
+            log.debug("  Comment added")
+
+        sleep(2)
 
 # EOF
