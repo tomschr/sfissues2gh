@@ -137,7 +137,7 @@ def parser():
     return args
 
 
-def setLogging(args, examples=True):
+def setLogging(args):
     leveldict = {
         None: logging.ERROR,
         1: logging.WARNING,
@@ -146,21 +146,23 @@ def setLogging(args, examples=True):
         # any greater value is falling back to logging.DEBUG
         'fallback': logging.DEBUG
     }
+    level = leveldict.get(args.verbose, leveldict["fallback"])
 
     formatter = logging.Formatter('[%(levelname)s] %(message)s')
-    handler = logging.StreamHandler(stream=sys.stderr)
+    streamhandler = logging.StreamHandler()# Use sys.stderr by default
     handler.setFormatter(formatter)
-    handler.setLevel(leveldict.get(args.verbose, leveldict["fallback"]))
+    handler.setLevel(level)
 
-    log.addHandler(handler)
-    log.setLevel(leveldict.get(args.verbose, leveldict["fallback"]))
+    log.addHandler(streamhandler)
+    log.setLevel(level)
 
-    if examples:
-        log.debug("Debug")
-        log.info("Info")
-        log.warn("Warning")
-        log.error("Error")
-        log.critical("OHje!!")
+    # Enable also logging for urllib3
+    if arg.verbose > 3:
+        urllib3 = logging.getLogger('requests.packages.urllib3')
+        #urllib3.addHandler(file_handler)
+        urllib3.addHandler(streamhandler)
+        urllib3.setFormatter(formatter)
+        urllib3.setLevel(level)
 
 
 def load_json(filename):
@@ -201,9 +203,9 @@ def auth4GH(args):
                         client_secret=CLIENTSECRET
                         )
 
-    log.info("Authenticated as {name} "
-             "with id {client_id} "
-             "by {url}".format(**auth.app)
+    log.info("Authenticated as '{name}' "
+             "with id={client_id}, "
+             "URL={url}".format(**auth.app)
             )
     log.info("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
     #if not gh.check_authorization(auth.token):
@@ -223,8 +225,11 @@ def createRepo(gh, args):
     while True:
         res = input("Create repo {}? (y|N)".format(args.repo))
         res=res.strip().lower()
+        if not res:
+            res = 'n'
         if res in ('y', 'yes', 'n', 'no'):
             break
+
     if res in ('n', 'no'):
         log.error("Don't create repo, aborting.")
         sys.exit(20)
@@ -281,7 +286,7 @@ def prepareGithub(args):
         log.info("Collaborators: Found {} - missing {}".format(len(found),
                                                                len(missingcollabs),
                                                                ))
-    return repo, found, missingcollabs
+    return repo, auth, found, missingcollabs
 
 
 def getMilestoneNumbers(repo):
@@ -323,11 +328,11 @@ def updateIssue(args, repo, tracker, issue, sfTicket, prefix=""):
 
 if __name__ == "__main__":
     args = parser()
-    setLogging(args, False)
+    setLogging(args)
     log.debug("Arguments: {}".format(args))
 
     tracker = load_json(args.jsonfile)
-    repo, *collabs = prepareGithub(args)
+    repo, auth, *collabs = prepareGithub(args)
     prefix = getPrefix(tracker)
 
     for i, t in enumerate(sorttickets(tracker)):
