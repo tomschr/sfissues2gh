@@ -344,11 +344,11 @@ if __name__ == "__main__":
 
         if not args.dryrun:
             issue = repo.create_issue(**issuedict)
-            sleep(1)
+            sleep(2)
             #if issue.etag != auth.etag:
             #    issue.etag = auth.etag
             result = updateIssue(args, repo, auth, tracker, issue, t, prefix)
-            sleep(1)
+            sleep(2)
 
         for post in t['discussion_thread']['posts']:
             timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
@@ -362,7 +362,7 @@ if __name__ == "__main__":
             print("  Comment from {} on {}".format(post['author'], timestamp))
             if not args.dryrun:
                 issue.create_comment(body=body)
-                sleep(1)
+                sleep(2)
         print()
 
 # EOF
