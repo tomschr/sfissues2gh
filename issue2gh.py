@@ -150,7 +150,6 @@ def sorttickets(tracker):
 
 
 def auth4GH(args):
-
     from getpass import getpass
 
     user = args.gituser
@@ -288,6 +287,24 @@ def updateIssue(args, repo, auth, tracker, issue, sfTicket, prefix=""):
         return issue.edit(**updateData)
 
 
+def createcomment(args, repo, auth, posts):
+    for post in posts:
+        timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
+        body = '**'
+        if re.match('^- \*\*', post['text']):
+            body += 'Updated by '
+        else:
+            body += 'Commented by '
+        body += post['author'] + ' on ' + timestamp + "**\n" + post['text']
+
+        print("  Comment from {} on {}".format(post['author'], timestamp))
+        if not args.dryrun:
+            issue.create_comment(body=body)
+            sleep(2)
+    print()
+
+
+
 if __name__ == "__main__":
     args = parser()
     setLogging(args)
@@ -350,19 +367,6 @@ if __name__ == "__main__":
             result = updateIssue(args, repo, auth, tracker, issue, t, prefix)
             sleep(2)
 
-        for post in t['discussion_thread']['posts']:
-            timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
-            body = '**'
-            if re.match('^- \*\*', post['text']):
-                body += 'Updated by '
-            else:
-                body += 'Commented by '
-            body += post['author'] + ' on ' + timestamp + "**\n" + post['text']
-
-            print("  Comment from {} on {}".format(post['author'], timestamp))
-            if not args.dryrun:
-                issue.create_comment(body=body)
-                sleep(2)
-        print()
+        createcomment(args, repo, auth, t['discussion_thread']['posts'])
 
 # EOF
