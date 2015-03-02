@@ -150,8 +150,8 @@ def setLogging(args):
 
     formatter = logging.Formatter('[%(levelname)s] %(message)s')
     streamhandler = logging.StreamHandler()# Use sys.stderr by default
-    handler.setFormatter(formatter)
-    handler.setLevel(level)
+    streamhandler.setFormatter(formatter)
+    streamhandler.setLevel(level)
 
     log.addHandler(streamhandler)
     log.setLevel(level)
