@@ -231,8 +231,8 @@ def prepareGithub(args):
             if not repo.is_collaborator(c):
                 missingcollabs.append(c)
                 # add collaborator
-                # if repo.add_collaborator(username=c):
-                #  log.error("Could not add user '{}' as collaborator".format(c))
+                if repo.add_collaborator(username=c):
+                  log.error("Could not add user '{}' as collaborator".format(c))
             else:
                 found.append(c)
 
@@ -259,7 +259,6 @@ def getMilestoneNumbers(repo, auth):
         milestoneNumbers[milestone.title] = milestone.number
 
     log.debug("End: X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
-    sleep(1)
     return milestoneNumbers
 
 
@@ -328,6 +327,7 @@ if __name__ == "__main__":
   Milestone: {milestone}
          """.format(**locals()))
         milestoneNumbers = getMilestoneNumbers(repo, auth)
+        sleep(2)
 
         issuedict = dict(title=summary,
                          body=description,
