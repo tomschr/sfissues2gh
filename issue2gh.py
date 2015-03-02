@@ -39,18 +39,6 @@ def getPrefix(export):
     return prefixes[trackerName]
 
 
-def getCollaborators(repo):
-    return repo.collaborators()
-
-
-def getMilestones(repo):
-    return repo.milestones()
-
-
-def getGHuser(sfuser):
-    return SF2GHuserdict.get(sfuser)
-
-
 def getSFuser(ghuser):
     return GH2SFuserdict.get(ghuser)
 
