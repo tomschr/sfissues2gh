@@ -376,6 +376,7 @@ if __name__ == "__main__":
 
         except github3.exceptions.ForbiddenError as err:
             log.error(err)
+            log.error("Check ticket#{}".format(i))
             log.error("Trying to recover. "
                       "Sleeping for {}s".format(SLEEPONForbiddenError))
             sleep(SLEEPONForbiddenError)
