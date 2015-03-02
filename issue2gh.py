@@ -157,7 +157,7 @@ def setLogging(args):
     log.setLevel(level)
 
     # Enable also logging for urllib3
-    if arg.verbose > 3:
+    if args.verbose > 3:
         urllib3 = logging.getLogger('requests.packages.urllib3')
         #urllib3.addHandler(file_handler)
         urllib3.addHandler(streamhandler)
