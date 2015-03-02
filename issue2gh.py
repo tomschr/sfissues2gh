@@ -3,12 +3,9 @@
 import sys
 import os
 import os.path
-import time
-import random
 import logging
 import re
 
-# import requests
 import json
 import github3
 
@@ -67,11 +64,6 @@ def parser():
                         help="Repo name as <owner>/<project>",
                         default=DEFAULTREPO,
                         )
-    # parser.add_argument('-d', '--debug',
-    # dest="debug",
-    # action="store_true",
-    # default=False,
-    # help="Help debugging")
     parser.add_argument('-N', '--dry-run',
                         dest="dryrun",
                         action="store_true",
@@ -93,16 +85,10 @@ def parser():
                         type=int,
                         action='store',
                         help='id of end issue to import (inclusive); useful for aborted runs')
-    #parser.add_argument('-u', '--user',
-    #                    dest='github_user')
     parser.add_argument("-T", "--no-id-in-title",
                         action="store_true",
                         dest="no_id_in_title",
                         help="do not append '[sf#12345]' to issue titles")
-    # parser.add_argument('-U', '--user-map',
-    #    help="A json file mapping SF username to GitHub username",
-    #    default={},
-    #    type=load_json)
 
     args = parser.parse_args()
 
@@ -147,7 +133,6 @@ def setLogging(args):
     # Enable also logging for urllib3
     if args.verbose > 3:
         urllib3 = logging.getLogger('requests.packages.urllib3')
-        #urllib3.addHandler(file_handler)
         urllib3.addHandler(streamhandler)
         urllib3.setLevel(level)
 
@@ -165,9 +150,6 @@ def sorttickets(tracker):
 
 
 def auth4GH(args):
-    #homedir=os.path.expanduser("~")
-    #configdir=os.path.join(homedir, ".config", "sfissues2git")
-    #CREDENTIALS_FILE=os.path.join(configdir, "token")
 
     from getpass import getpass
 
@@ -177,15 +159,11 @@ def auth4GH(args):
     while not password:
         password = getpass(prompt='GitHub Password for {0}: '.format(user))
 
-    #note = __file__
-    #note_url = ''
     scopes = ['repo']
-
 
     gh = github3.login(token=TOKEN)
     auth = gh.authorize(user, password,
                         scopes,
-                        # note, note_url,
                         client_id=CLIENTID,
                         client_secret=CLIENTSECRET
                         )
@@ -195,18 +173,12 @@ def auth4GH(args):
              "URL={url}".format(**auth.app)
             )
     log.info("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
-    #if not gh.check_authorization(auth.token):
-    #    log.error("Check for authorization has failed. "
-    #              "Better check/remove '{}' file.".format(CREDENTIALS_FILE)
-    #             )
+
     return gh, auth
 
 
 def createRepo(gh, args):
     repo = {'name': args.gitrepo}
-    #keys = ['name', 'description', 'homepage', 'private', 'has_issues',
-    #'has_wiki', 'has_downloads']
-    #  repo[key]
 
     res=''
     while True:
@@ -284,14 +256,13 @@ def getMilestoneNumbers(repo, auth):
         milestoneNumbers[milestone.title] = milestone.number
 
     log.debug("End: X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+    sleep(1)
     return milestoneNumbers
 
 
-def updateIssue(args, repo, tracker, issue, sfTicket, prefix=""):
-    #(githubIssue, sfTicket, auth, milestoneNumbers, userdict,
-    #     closedStatusNames, appendSFNumber, collaborators, prefix = ""
+def updateIssue(args, repo, auth, tracker, issue, sfTicket, prefix=""):
     closedStatusNames = tracker['closed_status_names']
-    milestoneNumbers = getMilestoneNumbers(repo)
+    milestoneNumbers = getMilestoneNumbers(repo, auth)
 
     updateData = {
         'title': prefix + ("" if prefix == "" else " ") + issue.title
