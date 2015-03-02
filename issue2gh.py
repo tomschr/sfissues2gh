@@ -11,7 +11,8 @@ import github3
 
 
 from config import CLIENTID, CLIENTSECRET, TOKEN, DEFAULTREPO, \
-    SF2GHuserdict, GH2SFuserdict, userdict
+    SF2GHuserdict, GH2SFuserdict, userdict \
+    SLEEPONEVERY, SLEEPONEVERYSECONDS, SLEEPONForbiddenError
 
 __version__ = "0.1"
 __author__ = "Thomas Schraitle <toms@opensuse.org>"
@@ -315,58 +316,68 @@ if __name__ == "__main__":
     prefix = getPrefix(tracker)
 
     for i, t in enumerate(sorttickets(tracker)):
-        no = t['ticket_num']
-        # Check, if we need to process only some tickets
-        # should be in the range [startid, endid] or [start, oo]
-        #
-        if no < args.start_id or (args.end_id is not None and no > args.end_id):
-            continue
+        try:
+            if not i % SLEEPONEVERY:
+                sleep(SLEEPONEVERYSECONDS)
 
-        labels = t['labels']
-        assigned_to = t['assigned_to']
-        created_date = t['created_date']
-        summary = t['summary']
-        if not args.no_id_in_title:
-            summary += " [sf#{}]".format(no)
-        status = t['status']
-        reported_by = t['reported_by']
-        custom_fields = t['custom_fields']
-        milestone = custom_fields.get('_milestone')
-        timestamp = re.sub(':\d+(\.\d+)?$', '', created_date)
-        description = t['description']
-        description = "**Reported by {reported_by} on {timestamp} UTC**\n{description}".format(
-            **locals())
-        print("""* Ticket #{no}: {summary}
-  Created:  {created_date}
-  Assigned: {assigned_to}
-  Status:   {status}
-  Labels:   {labels}
-  Milestone: {milestone}
-         """.format(**locals()))
-        milestoneNumbers = getMilestoneNumbers(repo, auth)
-        sleep(2)
+            no = t['ticket_num']
+            # Check, if we need to process only some tickets
+            # should be in the range [startid, endid] or [start, oo]
+            #
+            if no < args.start_id or (args.end_id is not None and no > args.end_id):
+                continue
 
-        issuedict = dict(title=summary,
-                         body=description,
-                         labels=labels,
-                         )
-        if assigned_to in collabs[0]:
-            issuedict.update(assignee=assigned_to)
-
-        if milestone in milestoneNumbers:
-            issuedict.update(milestone=milestoneNumbers[milestone])
-
-        if args.dryrun:
-            log.debug("dryrun: Will create issue with: {}".format(issuedict))
-
-        if not args.dryrun:
-            issue = repo.create_issue(**issuedict)
-            sleep(2)
-            #if issue.etag != auth.etag:
-            #    issue.etag = auth.etag
-            result = updateIssue(args, repo, auth, tracker, issue, t, prefix)
+            labels = t['labels']
+            assigned_to = t['assigned_to']
+            created_date = t['created_date']
+            summary = t['summary']
+            if not args.no_id_in_title:
+                summary += " [sf#{}]".format(no)
+            status = t['status']
+            reported_by = t['reported_by']
+            custom_fields = t['custom_fields']
+            milestone = custom_fields.get('_milestone')
+            timestamp = re.sub(':\d+(\.\d+)?$', '', created_date)
+            description = t['description']
+            description = "**Reported by {reported_by} on {timestamp} UTC**\n{description}".format(
+                **locals())
+            print("""* Ticket #{no}: {summary}
+    Created:  {created_date}
+    Assigned: {assigned_to}
+    Status:   {status}
+    Labels:   {labels}
+    Milestone: {milestone}
+            """.format(**locals()))
+            milestoneNumbers = getMilestoneNumbers(repo, auth)
             sleep(2)
 
-        createcomment(args, repo, auth, t['discussion_thread']['posts'])
+            issuedict = dict(title=summary,
+                            body=description,
+                            labels=labels,
+                            )
+            if assigned_to in collabs[0]:
+                issuedict.update(assignee=assigned_to)
+
+            if milestone in milestoneNumbers:
+                issuedict.update(milestone=milestoneNumbers[milestone])
+
+            if args.dryrun:
+                log.debug("dryrun: Will create issue with: {}".format(issuedict))
+
+            if not args.dryrun:
+                issue = repo.create_issue(**issuedict)
+                sleep(2)
+                #if issue.etag != auth.etag:
+                #    issue.etag = auth.etag
+                result = updateIssue(args, repo, auth, tracker, issue, t, prefix)
+                sleep(2)
+
+            createcomment(args, repo, auth, t['discussion_thread']['posts'])
+
+        except github3.exceptions.ForbiddenError as err:
+            log.error(err)
+            log.error("Trying to recover. "
+                      "Sleeping for {}s".format(SLEEPONForbiddenError))
+            sleep(SLEEPONForbiddenError)
 
 # EOF
