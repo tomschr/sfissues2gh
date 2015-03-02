@@ -3,9 +3,9 @@
 import sys
 import os
 import os.path
+from time import sleep
 import logging
 import re
-
 import json
 import github3
 
@@ -225,6 +225,7 @@ def prepareGithub(args):
         log.debug("URL    : {}".format(repo.url))
         log.debug("Git URL: {}".format(repo.git_url))
 
+        log.debug("X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
         # Remove any double entries
         for c in set(userdict.values()):
             if not repo.is_collaborator(c):
@@ -245,6 +246,8 @@ def prepareGithub(args):
         log.info("Collaborators: Found {} - missing {}".format(len(found),
                                                                len(missingcollabs),
                                                                ))
+        log.debug("End: X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+
     return repo, auth, found, missingcollabs
 
 
@@ -341,7 +344,11 @@ if __name__ == "__main__":
 
         if not args.dryrun:
             issue = repo.create_issue(**issuedict)
-            result = updateIssue(args, repo, tracker, issue, t, prefix)
+            sleep(1)
+            #if issue.etag != auth.etag:
+            #    issue.etag = auth.etag
+            result = updateIssue(args, repo, auth, tracker, issue, t, prefix)
+            sleep(1)
 
         for post in t['discussion_thread']['posts']:
             timestamp = re.sub(':\d+(\.\d+)?$', '', post['timestamp'])
@@ -355,6 +362,7 @@ if __name__ == "__main__":
             print("  Comment from {} on {}".format(post['author'], timestamp))
             if not args.dryrun:
                 issue.create_comment(body=body)
+                sleep(1)
         print()
 
 # EOF
