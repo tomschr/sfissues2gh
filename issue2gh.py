@@ -231,8 +231,8 @@ def prepareGithub(args):
             if not repo.is_collaborator(c):
                 missingcollabs.append(c)
                 # add collaborator
-                if repo.add_collaborator(username=c):
-                  log.error("Could not add user '{}' as collaborator".format(c))
+                #if repo.add_collaborator(username=c):
+                #  log.error("Could not add user '{}' as collaborator".format(c))
             else:
                 found.append(c)
 
@@ -319,6 +319,7 @@ if __name__ == "__main__":
     for i, t in enumerate(sorttickets(tracker)):
         try:
             if not i % SLEEPONEVERY:
+                log.debug("Sleeping for {}s".format(SLEEPONEVERYSECONDS))
                 sleep(SLEEPONEVERYSECONDS)
 
             no = t['ticket_num']
