@@ -270,7 +270,7 @@ def prepareGithub(args):
             if not repo.is_collaborator(c):
                 missingcollabs.append(c)
                 # add collaborator
-                # if dapstest.add_collaborator(username=c):
+                # if repo.add_collaborator(username=c):
                 #  log.error("Could not add user '{}' as collaborator".format(c))
             else:
                 found.append(c)
@@ -288,12 +288,14 @@ def prepareGithub(args):
     return repo, auth, found, missingcollabs
 
 
-def getMilestoneNumbers(repo):
+def getMilestoneNumbers(repo, auth):
     milestoneNumbers = {}
 
-    for milestone in repo.milestones():
+    log.debug("Begin: X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
+    for milestone in repo.milestones(etag=auth.etag):
         milestoneNumbers[milestone.title] = milestone.number
 
+    log.debug("End: X-RateLimit-Remaining is {}".format(auth.ratelimit_remaining))
     return milestoneNumbers
 
 
@@ -363,7 +365,7 @@ if __name__ == "__main__":
   Labels:   {labels}
   Milestone: {milestone}
          """.format(**locals()))
-        milestoneNumbers = getMilestoneNumbers(repo)
+        milestoneNumbers = getMilestoneNumbers(repo, auth)
 
         issuedict = dict(title=summary,
                          body=description,
