@@ -315,6 +315,7 @@ if __name__ == "__main__":
     repo, auth, *collabs = prepareGithub(args)
     prefix = getPrefix(tracker)
 
+    checktickets=[]
     for i, t in enumerate(sorttickets(tracker)):
         try:
             if not i % SLEEPONEVERY:
@@ -379,6 +380,11 @@ if __name__ == "__main__":
             log.error("Check ticket#{}".format(i))
             log.error("Trying to recover. "
                       "Sleeping for {}s".format(SLEEPONForbiddenError))
+            checktickets.append(i)
             sleep(SLEEPONForbiddenError)
 
+    if checktickets:
+        log.info("Check the following tickets: {}".format(checktickets))
+
+    log.info("Finished convertion from SF to GitHub.")
 # EOF
