@@ -360,8 +360,9 @@ if __name__ == "__main__":
                             body=description,
                             labels=labels,
                             )
-            if assigned_to in collabs[0]:
-                issuedict.update(assignee=assigned_to)
+            # Only assign if it the assignee belongs to one of these lists:
+            if assigned_to in collabs[0] and assigned_to in ok2assign:
+                    issuedict.update(assignee=assigned_to)
 
             if milestone in milestoneNumbers:
                 issuedict.update(milestone=milestoneNumbers[milestone])
