@@ -11,7 +11,7 @@ import github3
 
 
 from config import CLIENTID, CLIENTSECRET, TOKEN, DEFAULTREPO, \
-    SF2GHuserdict, GH2SFuserdict, userdict, \
+    SF2GHuserdict, GH2SFuserdict, userdict, ok2assign, \
     SLEEPY, SLEEPONEVERYSECONDS, SLEEPONForbiddenError
 
 __version__ = "0.1"
