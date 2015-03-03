@@ -12,7 +12,7 @@ import github3
 
 from config import CLIENTID, CLIENTSECRET, TOKEN, DEFAULTREPO, \
     SF2GHuserdict, GH2SFuserdict, userdict, \
-    SLEEPONEVERY, SLEEPONEVERYSECONDS, SLEEPONForbiddenError
+    SLEEPY, SLEEPONEVERYSECONDS, SLEEPONForbiddenError
 
 __version__ = "0.1"
 __author__ = "Thomas Schraitle <toms@opensuse.org>"
@@ -241,7 +241,7 @@ def prepareGithub(args):
                 "No collaborator found. Add {} manually.".format(found))
 
         if not missingcollabs:
-            log.warning("Missing collaborators:", ",".join(missingcollabs))
+            log.warning("Missing collaborators: {}".format(",".join(missingcollabs)))
 
         log.info("Collaborators: Found {} - missing {}".format(len(found),
                                                                len(missingcollabs),
@@ -265,6 +265,7 @@ def getMilestoneNumbers(repo, auth):
 def updateIssue(args, repo, auth, tracker, issue, sfTicket, prefix=""):
     closedStatusNames = tracker['closed_status_names']
     milestoneNumbers = getMilestoneNumbers(repo, auth)
+    log.debug("Got the following milestones: {}".format(milestoneNumbers))
 
     updateData = {
         'title': prefix + ("" if prefix == "" else " ") + issue.title
@@ -316,9 +317,9 @@ if __name__ == "__main__":
     prefix = getPrefix(tracker)
 
     checktickets=[]
-    for i, t in enumerate(sorttickets(tracker)):
+    for i, t in enumerate(sorttickets(tracker), start=1):
         try:
-            if not i % SLEEPONEVERY:
+            if not i % SLEEPY:
                 log.debug("Sleeping for {}s".format(SLEEPONEVERYSECONDS))
                 sleep(SLEEPONEVERYSECONDS)
 
@@ -341,7 +342,9 @@ if __name__ == "__main__":
             milestone = custom_fields.get('_milestone')
             timestamp = re.sub(':\d+(\.\d+)?$', '', created_date)
             description = t['description']
-            description = "**Reported by {reported_by} on {timestamp} UTC**\n{description}".format(
+            description = "**Reported by {reported_by} " \
+                          "on {timestamp} UTC**\n" \
+                          "{description}".format(
                 **locals())
             print("""* Ticket #{no}: {summary}
     Created:  {created_date}
