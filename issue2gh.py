@@ -364,7 +364,7 @@ if __name__ == "__main__":
             if assigned_to in collabs[0] and assigned_to in ok2assign:
                     issuedict.update(assignee=assigned_to)
 
-            if milestone in milestoneNumbers:
+            if milestoneNumbers.get(milestone):
                 issuedict.update(milestone=milestoneNumbers[milestone])
 
             if args.dryrun:
